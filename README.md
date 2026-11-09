@@ -1,0 +1,59 @@
+# 🏦 Commercial Bank Pre-Sale Due Diligence & Portfolio Audit
+
+<p align="center">
+  <img src="https://img.shields.io/badge/PostgreSQL-15%2B-blue?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Data_Analysis-Advanced_SQL-green?style=flat-square&logo=databricks&logoColor=white" alt="Data Analysis">
+  <img src="https://img.shields.io/badge/Domain-Banking_%26_M%26A-orange?style=flat-square&logo=bank&logoColor=white" alt="Banking M&A">
+  <img src="https://img.shields.io/badge/Status-Completed-success?style=flat-square" alt="Status">
+</p>
+
+This project simulates a comprehensive analytical audit of a commercial bank’s portfolio and operational health prior to a potential state acquisition (M&A Due Diligence). 
+It demonstrates advanced SQL skills in financial data modeling, cohort analysis, risk assessment, and executive reporting.
+
+---
+
+📌 **Project Overview**
+
+Prior to a potential acquisition of a commercial bank by a state-backed investor, an independent data-driven audit was conducted covering the period of **2023–2025**.  
+The goal is to evaluate the bank's true financial health, uncover hidden client base risks, assess loan portfolio quality, and calculate outstanding liabilities (including loyalty program deficits) using PostgreSQL.
+
+* **Dataset Scale:** 700,000+ transactions across 12 relational tables (Star Schema: `dim_*` and `fact_*`).
+* **Tech Stack:** PostgreSQL (CTE, Window Functions, Complex Aggregations, Multi-table JOINs).
+
+---
+
+### Project Goals
+
+* Analyze customer base growth, cohort retention, and hidden churn.
+* Evaluate deposit balance dynamics, stability, and customer concentration risks.
+* Investigate operational activity, transaction trends, and seasonal peaks.
+* Assess operational risks, failure rates, and fraud indicators (`is_fraud_flag`).
+* Audit the credit portfolio, credit line utilization, and over-indebtedness.
+* Calculate unredeemed bonus program liabilities and program efficiency.
+
+---
+
+📊 **Skills Demonstrated**
+
+* **Advanced SQL Techniques:** Common Table Expressions (CTE), Window Functions (`NTILE`, `LAG`, `SUM() OVER ()`), conditional aggregation (`FILTER`, `CASE WHEN`), and multi-table `JOIN` operations.
+* **Data Warehousing:** Working with relational Star Schema architecture (`dim_*` and `fact_*` tables).
+* **Business & Financial Analysis:** M&A Due Diligence, liquidity risk assessment, cohort tracking, and risk exposure profiling.
+* **Executive Reporting:** Translating raw database queries into structured management insights and investment recommendations (`REPORT.md`).
+
+---
+
+### Repository Structure
+
+```text
+├── data/
+│   └── schema.sql             # Database schema (Star Schema, 12 tables)
+├── sql/                       # Modular SQL queries broken down into 6 analytical blocks
+│   ├── 01_customer_base.sql
+│   ├── 02_deposits_balance.sql
+│   ├── 03_operations.sql
+│   ├── 04_risk_analysis.sql
+│   ├── 05_credit_portfolio.sql
+│   └── 06_loyalty_program.sql
+├── reports/                   # Supplementary analytical documentation
+├── REPORT.md                  # Comprehensive Executive Summary for stakeholders
+└── README.md                  # Project overview and documentation
