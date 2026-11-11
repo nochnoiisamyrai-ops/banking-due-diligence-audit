@@ -1,48 +1,58 @@
 -- =====================================================================
--- BLOCK 1: CUSTOMER BASE & CHURN AUDIT
--- M&A Due Diligence - Bank Analytics DB
--- Goal: Verify active user base, registration cohorts, and validate 
---       official churn vs actual transaction behavior.
+-- BLOCK 1. CUSTOMER BASE & CHURN ANALYSIS
+-- Project: Bank Analytics DB (M&A Due Diligence for State Acquisition)
+-- Objective: Evaluate customer base growth, cohort retention, segment vulnerabilities,
+--            and validate official vs. behavioral churn definitions.
+-- Tables: dim_customers, dim_accounts, fact_account_balance_monthly
+-- Data Period: 2023-01-01 to 2025-12-31 (Monthly activity available: 2024–2025)
 -- =====================================================================
 
--- 1. Data Integrity & Orphan Check
--- NOTE: Checking if any customers exist without linked accounts
+-- ---------------------------------------------------------------------
+-- 1.1 DATA INTEGRITY & AUDIT PRE-CHECKS
+-- ---------------------------------------------------------------------
+-- Check 1.1.1: Total customers vs accounts mapping
 SELECT 
-    COUNT(DISTINCT c.customer_id) AS total_cust,
-    COUNT(DISTINCT a.account_id) AS total_acc,
-    COUNT(DISTINCT c.customer_id) FILTER (WHERE a.account_id IS NOT NULL) AS cust_with_acc,
-    COUNT(DISTINCT c.customer_id) FILTER (WHERE a.account_id IS NULL) AS orphan_cust
+    COUNT(DISTINCT c.customer_id) AS total_customers,
+    COUNT(DISTINCT a.account_id) AS total_accounts,
+    COUNT(DISTINCT c.customer_id) FILTER (WHERE a.account_id IS NOT NULL) AS customers_with_account,
+    COUNT(DISTINCT c.customer_id) FILTER (WHERE a.account_id IS NULL) AS orphan_customers
 FROM dim_customers c
 LEFT JOIN dim_accounts a ON a.customer_id = c.customer_id;
 
--- Sanity check on dates
+-- Check 1.1.2: Logical inconsistencies in registration and churn dates
 SELECT 
-    COUNT(*) FILTER (WHERE is_churned AND churn_date IS NULL) AS churn_no_date,
-    COUNT(*) FILTER (WHERE NOT is_churned AND churn_date IS NOT NULL) AS active_with_churn_date,
-    COUNT(*) FILTER (WHERE churn_date < registration_date) AS invalid_churn_dates
+    SUM(CASE WHEN is_churned AND churn_date IS NULL THEN 1 ELSE 0 END) AS churned_without_date,
+    SUM(CASE WHEN NOT is_churned AND churn_date IS NOT NULL THEN 1 ELSE 0 END) AS date_without_churn_flag,
+    SUM(CASE WHEN churn_date < registration_date THEN 1 ELSE 0 END) AS churn_before_registration
 FROM dim_customers;
 
 
--- 2. Customer Acquisition Dynamics (YoY)
+-- ---------------------------------------------------------------------
+-- HYPOTHESIS 1.1: Customer Base Growth dynamics
+-- Question: Is new customer acquisition slowing down year-over-year?
+-- ---------------------------------------------------------------------
 SELECT 
-    EXTRACT(YEAR FROM registration_date)::INT AS reg_year,
-    COUNT(*) AS new_cust,
-    COUNT(*) - LAG(COUNT(*)) OVER (ORDER BY EXTRACT(YEAR FROM registration_date)) AS abs_change,
+    EXTRACT(YEAR FROM registration_date)::INT AS registration_year,
+    COUNT(*) AS new_customers,
+    COUNT(*) - LAG(COUNT(*)) OVER (ORDER BY EXTRACT(YEAR FROM registration_date)) AS yoy_abs_change,
     ROUND(
         100.0 * (COUNT(*) - LAG(COUNT(*)) OVER (ORDER BY EXTRACT(YEAR FROM registration_date))) 
         / LAG(COUNT(*)) OVER (ORDER BY EXTRACT(YEAR FROM registration_date)), 
         1
-    ) AS yoy_growth_pct
+    ) AS yoy_pct_change
 FROM dim_customers
 GROUP BY 1
 ORDER BY 1;
 
 
--- 3. 12-Month Cohort Retention Degradation
--- Exclude 2025 cohort (observation window < 12 months)
+-- ---------------------------------------------------------------------
+-- HYPOTHESIS 1.2: 12-Month Cohort Retention Degradation
+-- Question: Is the 12-month churn rate higher in the 2024 cohort than in 2023?
+-- Note: Excludes 2025 cohort as 12 months of observation are not completed.
+-- ---------------------------------------------------------------------
 SELECT 
     EXTRACT(YEAR FROM registration_date)::INT AS cohort_year,
-    COUNT(*) AS cohort_size,
+    COUNT(*) AS total_cohort_customers,
     SUM(CASE WHEN is_churned AND churn_date <= registration_date + INTERVAL '12 months' THEN 1 ELSE 0 END) AS churned_12m,
     ROUND(
         100.0 * SUM(CASE WHEN is_churned AND churn_date <= registration_date + INTERVAL '12 months' THEN 1 ELSE 0 END) 
@@ -55,84 +65,110 @@ GROUP BY 1
 ORDER BY 1;
 
 
--- 4. Churn Rate by Wealth Segment & Income
+-- ---------------------------------------------------------------------
+-- HYPOTHESIS 1.3: Churn Rate Concentration across Customer Segments
+-- Question: Are mass-segment clients or low-income clients churning at higher rates?
+-- ---------------------------------------------------------------------
+-- By Wealth Segment:
 SELECT 
     segment,
-    COUNT(*) AS total_cust,
-    SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) AS churned_cust,
-    ROUND(100.0 * SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_pct
+    COUNT(*) AS total_customers,
+    SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) AS churned_customers,
+    ROUND(100.0 * SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_rate_pct
 FROM dim_customers
 GROUP BY segment
-ORDER BY churn_pct DESC;
+ORDER BY churn_rate_pct DESC;
 
+-- By Declared Income Bracket (NULLs isolated):
 SELECT 
     COALESCE(income_bracket, 'Unspecified') AS income_bracket,
-    COUNT(*) AS total_cust,
-    SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) AS churned_cust,
-    ROUND(100.0 * SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_pct
+    COUNT(*) AS total_customers,
+    SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) AS churned_customers,
+    ROUND(100.0 * SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_rate_pct
 FROM dim_customers
 GROUP BY 1
-ORDER BY churn_pct DESC;
+ORDER BY churn_rate_pct DESC;
 
 
--- 5. Cross-sell Depth vs Churn
-WITH acc_per_cust AS (
-    SELECT customer_id, COUNT(*) AS acc_count
+-- ---------------------------------------------------------------------
+-- HYPOTHESIS 1.4: Cross-sell Depth vs. Retention
+-- Question: Does holding multiple accounts lower the probability of churn?
+-- ---------------------------------------------------------------------
+WITH account_counts AS (
+    SELECT 
+        customer_id,
+        COUNT(*) AS num_accounts
     FROM dim_accounts
     GROUP BY customer_id
 )
 SELECT 
-    apc.acc_count,
-    COUNT(*) AS total_cust,
-    SUM(CASE WHEN c.is_churned THEN 1 ELSE 0 END) AS churned_cust,
-    ROUND(100.0 * SUM(CASE WHEN c.is_churned THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_pct
+    ac.num_accounts,
+    COUNT(*) AS total_customers,
+    SUM(CASE WHEN c.is_churned THEN 1 ELSE 0 END) AS churned_customers,
+    ROUND(100.0 * SUM(CASE WHEN c.is_churned THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_rate_pct
 FROM dim_customers c
-JOIN acc_per_cust apc ON apc.customer_id = c.customer_id
-GROUP BY apc.acc_count
-ORDER BY apc.acc_count;
+JOIN account_counts ac ON ac.customer_id = c.customer_id
+GROUP BY ac.num_accounts
+ORDER BY ac.num_accounts;
 
 
--- 6. Behavioral vs Official Churn Audit (Hidden Inactivity)
--- Looking for clients marked as active but having 0 transactions in last 3 months
-WITH monthly_act AS (
+-- ---------------------------------------------------------------------
+-- HYPOTHESIS 1.5: Official Churn Flag Inaccuracy (Behavioral vs. Official Churn)
+-- Question: Are inactive clients (no transactions for 3+ months) misclassified as active?
+-- Filter: Exclude customers registered after 2025-09-30 (insufficient observation window).
+-- ---------------------------------------------------------------------
+WITH monthly_activity AS (
     SELECT 
         a.customer_id,
         b.snapshot_month,
-        MAX(CASE WHEN b.is_active_flag THEN 1 ELSE 0 END) AS active
+        MAX(CASE WHEN b.is_active_flag THEN 1 ELSE 0 END) AS was_active
     FROM fact_account_balance_monthly b
     JOIN dim_accounts a ON a.account_id = b.account_id
     GROUP BY a.customer_id, b.snapshot_month
 ),
-last_act AS (
-    SELECT customer_id, MAX(snapshot_month) AS last_month
-    FROM monthly_act
-    WHERE active = 1
+last_activity AS (
+    SELECT 
+        customer_id,
+        MAX(snapshot_month) AS last_active_month
+    FROM monthly_activity
+    WHERE was_active = 1
     GROUP BY customer_id
 )
 SELECT 
-    c.is_churned AS official_flag,
+    c.is_churned AS official_churn_flag,
     CASE 
-        WHEN la.last_month >= '2025-10' THEN 'Active (Last 3M)'
-        WHEN la.last_month IS NULL THEN 'No Activity (2024-2025)'
+        WHEN la.last_active_month >= '2025-10' THEN 'Active (Last 3M)'
+        WHEN la.last_active_month IS NULL THEN 'No Activity Recorded (2024-2025)'
         ELSE 'Behavioral Churn (Inactive 3M+)'
-    END AS actual_status,
-    COUNT(*) AS cust_count,
+    END AS behavioral_status,
+    COUNT(*) AS customer_count,
     ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS share_pct
 FROM dim_customers c
-LEFT JOIN last_act la ON la.customer_id = c.customer_id
+LEFT JOIN last_activity la ON la.customer_id = c.customer_id
 WHERE c.registration_date < '2025-10-01'
 GROUP BY 1, 2
 ORDER BY 1, 2;
 
 
-/* =====================================================================
-   SUMMARY & M&A AUDIT NOTES: BLOCK 1
-   ---------------------------------------------------------------------
-   • Status: REQUIRES ATTENTION (Audit Adjustment Needed)
-   • 2025 Registration Spike: New client influx jumped +84.8% in 2025 
-     (2,706 -> 5,000). Needs onboarding verification prior to acquisition.
-   • Retention Degradation: First-year churn grew from 7.81% (2023 cohort) 
-     to 11.68% (2024 cohort), signaling lower quality acquisition.
-   • Reporting Discrepancy: ~11.4% of clients marked as active in the database 
-     show zero monthly transactional activity for 3+ months (hidden churn).
-   ===================================================================== */
+-- =====================================================================
+-- EXECUTIVE FINDINGS & M&A AUDIT VERDICT: BLOCK 1
+-- =====================================================================
+/*
+STATUS: REQUIRES ATTENTION / RISK
+
+Key Metrics & Findings:
+1. Customer Acquisition Anomaly:
+   - Registrations surged in 2025: 2,240 (2023) -> 2,706 (2024) -> 5,000 (2025), representing an 84.8% YoY jump in 2025.
+   - Buyer Risk: The sudden acceleration in 2025 requires verification of account acquisition quality (e.g., promotional accounts or synthetic batch loading).
+
+2. Retention Quality Degradation:
+   - 12-month cohort churn increased from 7.81% (2023 cohort) to 11.68% (2024 cohort), indicating declining customer lifetime value (LTV).
+
+3. Official vs. Actual Churn Misstatement:
+   - 11.4% of clients marked as "active" (`is_churned = FALSE`) had zero account activity for 3+ consecutive months.
+   - Official reporting understates actual churn, artificially inflating active user counts presented to the buyer.
+
+Buyer Recommendations:
+- Require vendor to adjust valuation based on behavioral active clients rather than official database flags.
+- Request full audit of the 5,000 new customers registered in 2025 to verify KYC compliance and real transactional activity.
+*/
