@@ -8,7 +8,6 @@
 -- Important: the database has no data on delinquencies or defaults; only
 -- the use of credit lines is assessed.
 -- =====================================================================
-
 -- DEFINITIONS
 -- Credit portfolio  = accounts with account_type = 'credit', currency KGS,
 --                     open in the month (balance is not NULL)
@@ -16,9 +15,6 @@
 -- Limit utilization = debt / credit_limit
 -- High utilization  = 80% or more
 -- Unused            = utilization of 0
-
-
--- DATA PASSPORT
 -- 0.1 Credit accounts by status and currency, limits and rates
 SELECT
     status,
@@ -37,7 +33,6 @@ GROUP BY status, currency
 ORDER BY currency, status;
 -- result 0.1: all KGS credit accounts with a balance were included in the calculation
 -- (sum of monthly account counts in 5.1 = 18,249 = rows in 0.2)
-
 -- 0.2 Sign of balances, limit overruns
 SELECT
     a.currency,
@@ -56,7 +51,6 @@ GROUP BY a.currency
 ORDER BY a.currency;
 -- result 0.2: all balances are positive (no negative or zero balances);
 -- rows with debt above the limit: KGS 1,456 of 18,249, EUR 89 of 1,051, USD 219 of 2,237
-
 -- 0.3 Credit cards by status
 SELECT
     c.status,
@@ -68,7 +62,6 @@ WHERE a.account_type = 'credit'
 GROUP BY c.status
 ORDER BY cards DESC;
 -- result 0.3: 2,784 credit cards; active 2,676 (96.1%), expired 58 (2.1%), blocked 50 (1.8%)
-
 -- 0.4 Number of credit accounts per customer
 WITH x AS (
     SELECT customer_id, COUNT(*) AS n_credit
@@ -86,7 +79,7 @@ ORDER BY n_credit;
 -- 1 account - 2,037, 2 accounts - 90, 3 accounts - 2; 2,223 credit accounts in total;
 -- 4.3% of borrowers have more than one credit account, so accounts are aggregated
 -- to customer level in 5.4 and 5.5
-
+-- --------------------------------------------------------------------------------------------------------
 -- HYPOTHESIS 5.1. Debt grows faster than limits
 -- Question: does limit utilization (debt / limit) grow from 2024-01 to 2025-12?
 -- Expectation: yes, it grows.
@@ -107,8 +100,8 @@ WHERE a.account_type = 'credit'
 GROUP BY b.snapshot_month
 ORDER BY b.snapshot_month;
 -- result 5.1: utilization 25.5% (2024-01) -> 26.1% (2025-12), 24.7-26.5% during the period;
--- debt 9.2 -> 37.2 million KGS, limits 36.2 -> 142.6 million, accounts 389 -> 1,492
-
+-- debt 9.2 -> 37.2 million KGS, limits 36.2 -> 142.6 million, accounts 389 -> 1,492 
+-- --------------------------------------------------------------------------------------------------------
 -- HYPOTHESIS 5.2. A significant share of lines is barely used
 -- Question: what share of accounts uses less than 10% of the limit, and how much debt is on them?
 -- Expectation: yes, more than one third of accounts.
@@ -145,7 +138,6 @@ ORDER BY 1;
 -- result 5.2 (2025-12): under 10% - 514 accounts (34.5%), 8.5% of debt; 10-50% - 667 (44.7%);
 -- 50-80% - 135 (9.0%); 80-100% - 42 (2.8%); over limit - 134 (9.0%), 36.1% of debt;
 -- there is no "unused" bucket in the result
-
 -- HYPOTHESIS 5.3. The share of high utilization grows
 -- Question: does the share of accounts with utilization of 80% or more grow from 2024-01 to 2025-12?
 -- Expectation: yes.
@@ -165,7 +157,6 @@ WHERE a.account_type = 'credit'
 GROUP BY b.snapshot_month
 ORDER BY b.snapshot_month;
 -- result 5.3: the share of 80%+ grew from 9.5% (37 accounts) to 11.8% (176 accounts)
-
 -- Additional check: limit overruns by month
 SELECT
     b.snapshot_month,
@@ -184,7 +175,7 @@ GROUP BY b.snapshot_month
 ORDER BY b.snapshot_month;
 -- result: accounts over the limit 30 (7.7%) in 2024-01, 46 (7.5%) in 2024-12, 134 (9.0%) in 2025-12;
 -- amount above the limit 1.9 -> 2.4 -> 6.5 million KGS
-
+-- --------------------------------------------------------------------------------------------------------
 -- HYPOTHESIS 5.4. High utilization is more common among low-income customers
 -- Question: is the share of customers with 80%+ utilization higher in the low group than in high and very_high?
 -- Expectation: yes.
@@ -218,7 +209,7 @@ GROUP BY 1
 ORDER BY high_util_pct DESC;
 -- result 5.4 (share of customers with 80%+ utilization): not specified 14.5% (35), medium 12.0% (60),
 -- high 11.5% (24), low 10.6% (46), very_high 8.7% (6, not interpretable)
-
+-- --------------------------------------------------------------------------------------------------------
 -- HYPOTHESIS 5.5. Debt is concentrated in a small share of customers
 -- Question: do the top 10% of borrowers hold more than half of the debt?
 -- Expectation: yes.
@@ -251,8 +242,6 @@ FROM ranked
 GROUP BY decile
 ORDER BY decile;
 -- result 5.5: the top 10% of borrowers (146 of 1,453) hold 44.5% of the debt, the top 20% hold 62.0%, the top 30% hold 73.2%
-
-
 -- =====================================================================
 -- BLOCK 5 SUMMARY. CREDIT PORTFOLIO
 -- =====================================================================
