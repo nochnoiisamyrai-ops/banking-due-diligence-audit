@@ -6,7 +6,6 @@
 -- Tables: fact_transactions, dim_channels, dim_merchants, dim_accounts
 -- Data Period: 2023-01-01 to 2025-12-31
 -- =====================================================================
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 4.1: Transaction Decline Rate Trends
 -- Question: Is the overall share of declined transactions increasing year-over-year?
@@ -22,8 +21,6 @@ FROM fact_transactions
 WHERE transaction_type <> 'fee'
 GROUP BY 1
 ORDER BY 1;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 4.2: Decline Rate Concentration across Channels (Lift Analysis)
 -- Question: Do specific service channels exhibit a disproportionate decline lift (> 1.5)?
@@ -52,8 +49,6 @@ SELECT
     ROUND((1.0 * declined_count / SUM(declined_count) OVER ()) / (1.0 * txn_count / SUM(txn_count) OVER ()), 2) AS decline_lift
 FROM channel_agg
 ORDER BY decline_lift DESC;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 4.3: Fraud Flag Concentration by Channel & Merchant Type
 -- Question: Are suspicious operations concentrated in specific online merchants or channels?
@@ -76,8 +71,6 @@ SELECT
     ROUND((1.0 * fraud_count / NULLIF(SUM(fraud_count) OVER (), 0)) / (1.0 * txn_count / SUM(txn_count) OVER ()), 2) AS fraud_lift
 FROM fraud_channel_agg
 ORDER BY fraud_lift DESC;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 4.4: Blocked Accounts & Frozen Liquidity Risk
 -- Question: What proportion of accounts and balances are currently frozen/blocked?
@@ -95,8 +88,6 @@ WHERE a.currency = 'KGS'
   AND a.account_type IN ('current', 'savings', 'deposit')
 GROUP BY a.status
 ORDER BY total_accounts DESC;
-
-
 -- =====================================================================
 -- EXECUTIVE FINDINGS & M&A AUDIT VERDICT: BLOCK 4
 -- =====================================================================
