@@ -5,7 +5,6 @@
 -- Tables: fact_account_balance_monthly, dim_accounts, dim_customers
 -- Period: monthly data 2024-01 to 2025-12
 -- =====================================================================
-
 -- DEFINITIONS
 -- Deposit funds    = balances on accounts of type current, savings, deposit
 --                    (credit accounts are analysed separately)
@@ -14,8 +13,6 @@
 -- Hidden churn     = customer with is_churned = false and no active account
 --                    for 3 consecutive months (see Block 1)
 -- Currencies are analysed separately: there is no exchange rate table in the database.
-
--- DATA PASSPORT
 -- 1. Distribution of accounts by type and currency
 SELECT
     account_type,
@@ -25,7 +22,6 @@ FROM dim_accounts
 GROUP BY account_type, currency
 ORDER BY account_type, currency;
 -- result: types: credit, current, deposit, savings; currencies: EUR, KGS, USD
-
 -- 2. Sign and size of balances by account type (credit accounts in particular)
 SELECT
     a.account_type,
@@ -37,7 +33,6 @@ FROM fact_account_balance_monthly b
 JOIN dim_accounts a ON a.account_id = b.account_id
 GROUP BY a.account_type
 ORDER BY a.account_type;
-
 -- 3. Number of rows by month, share of NULL in balance
 SELECT
     snapshot_month,
@@ -48,7 +43,6 @@ FROM fact_account_balance_monthly
 GROUP BY snapshot_month
 ORDER BY snapshot_month;
 -- result: 24 monthly snapshots (2024-01 to 2025-12)
-
 -- HYPOTHESIS 2.1. Total balance is growing
 -- Question: does the total balance of deposit funds in KGS grow
 -- from month to month in 2024-2025?
@@ -72,7 +66,6 @@ GROUP BY a.currency, b.snapshot_month
 ORDER BY a.currency, b.snapshot_month;
 -- result: KGS deposit funds 81.4 million (2024-01) -> 343.5 million (2025-12), +322%;
 -- average balance per account 24,495 -> 24,939 (+1.8%)
-
 -- HYPOTHESIS 2.2. Deposit concentration
 -- Question: do the top 10% of customers hold more than half of deposits?
 -- Expectation: yes.
@@ -104,7 +97,6 @@ FROM ranked
 GROUP BY decile
 ORDER BY decile;
 -- result: the top 10% of customers (decile 1) hold 41.1% of KGS deposits
-
 -- HYPOTHESIS 2.3. Balance structure by account type
 -- Question: do balances on current accounts outweigh term deposits?
 -- Expectation: yes.
@@ -126,7 +118,6 @@ WHERE b.snapshot_month = '2025-12'
 GROUP BY a.account_type
 ORDER BY total_balance DESC;
 -- result: current 54.8%, savings 28.6%, deposit 16.5%
-
 -- HYPOTHESIS 2.4. Balance behaviour before account closure
 -- Question: does the balance decline in the 3-6 months before an account is closed?
 -- Expectation: yes.
@@ -154,7 +145,6 @@ HAVING (EXTRACT(YEAR FROM c.close_date) * 12 + EXTRACT(MONTH FROM c.close_date))
         + EXTRACT(MONTH FROM TO_DATE(b.snapshot_month || '-01', 'YYYY-MM-DD'))) BETWEEN 1 AND 6
 ORDER BY months_before_close DESC;
 -- result: average balance 6 -> 1 months before closure: 25,276 -> 24,380 (-3.5%), uneven
-
 -- HYPOTHESIS 2.5. Money held by hidden-churn customers
 -- Question: what share of balances is held by customers with hidden churn
 --           from Block 1?
@@ -200,7 +190,6 @@ WHERE NOT c.is_churned
 GROUP BY 1;
 -- result: hidden-churn customers hold 5.2% of balances, against about 11.4% of
 -- not-churned customers (Block 1)
-
 -- =====================================================================
 -- BLOCK 2 SUMMARY. BALANCES AND DEPOSITS
 -- =====================================================================
