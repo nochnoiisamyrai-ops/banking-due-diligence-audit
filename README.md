@@ -68,6 +68,5 @@ The goal is to evaluate the bank's true financial health, uncover hidden client 
 │   ├── 04_risks.sql           # Decline rates, fraud indicators, and frozen assets
 │   ├── 05_credit.sql          # Credit limits, utilization tiers, and borrower exposure
 │   └── 06_bonus.sql           # Bonus points liability ledger and deficit analysis
-├── reports/                   # Supplementary analytical documentation
 ├── REPORT.md                  # Comprehensive Executive Summary for stakeholders
 └── README.md                  # Project overview and documentation
