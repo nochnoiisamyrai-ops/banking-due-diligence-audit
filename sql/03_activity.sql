@@ -6,7 +6,6 @@
 -- Tables: fact_transactions, dim_channels, dim_accounts
 -- Data Period: 2023-01-01 to 2025-12-31
 -- =====================================================================
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 3.1: YoY Transaction Volume Growth
 -- Question: Is active transaction volume growing steadily year-over-year?
@@ -21,8 +20,6 @@ FROM fact_transactions
 WHERE status = 'completed' AND transaction_type <> 'fee'
 GROUP BY 1
 ORDER BY 1;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 3.2: Organic Intensity vs. Client Count Expansion
 -- Question: Is growth driven by higher activity per account or strictly new accounts?
@@ -43,8 +40,6 @@ SELECT
     ROUND(1.0 * monthly_txns / active_accounts, 2) AS txns_per_account_ratio
 FROM monthly_metrics
 ORDER BY month_start;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 3.3: Payroll Day & Year-End Load Seasonality
 -- Question: Do transaction volumes concentrate heavily on payroll dates (5th, 25th, 30th)?
@@ -59,8 +54,6 @@ SELECT
 FROM fact_transactions
 WHERE status = 'completed' AND transaction_type <> 'fee'
 GROUP BY 1;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 3.4: Digital Channel Adoption Stagnation
 -- Question: Is the share of digital transactions (Mobile App, Internet Bank, QR) increasing?
@@ -84,8 +77,6 @@ SELECT
 FROM channel_classified
 GROUP BY txn_year
 ORDER BY txn_year;
-
-
 -- =====================================================================
 -- EXECUTIVE FINDINGS & M&A AUDIT VERDICT: BLOCK 3
 -- =====================================================================
