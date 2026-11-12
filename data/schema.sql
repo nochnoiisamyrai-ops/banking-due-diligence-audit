@@ -1,4 +1,4 @@
-## ⚙️ Database Connection
+## Database Connection
 
 To connect to the PostgreSQL database hosted on Neon, use the following credentials:
 
