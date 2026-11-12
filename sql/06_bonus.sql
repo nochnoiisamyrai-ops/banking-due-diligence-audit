@@ -6,7 +6,6 @@
 -- Tables: dim_bonus_programs, fact_bonus_accrual, fact_bonus_redemption, dim_customers
 -- Data Period: 2023-01-01 to 2025-12-31
 -- =====================================================================
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 6.1: Net Outstanding Bonus Points Liability
 -- Question: What is the cumulative net balance of points (earned minus spent) across 2023-2025?
@@ -28,8 +27,6 @@ SELECT
     ROUND(100.0 * (a.pts_earned - r.pts_spent) / a.pts_earned, 1) AS net_balance_pct
 FROM accrued_totals a
 CROSS JOIN redeemed_totals r;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 6.2: Program-Level Deficit Distribution
 -- Question: Which loyalty programs generate the largest structural deficits?
@@ -55,8 +52,6 @@ FROM dim_bonus_programs p
 LEFT JOIN program_acc pa ON pa.program_id = p.program_id
 LEFT JOIN program_red pr ON pr.program_id = p.program_id
 ORDER BY net_balance ASC;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 6.3: Loyalty Redemption Impact on Client Churn
 -- Question: Do clients who redeem bonus points exhibit a significantly lower churn rate (>3 p.p.)?
@@ -78,8 +73,6 @@ FROM program_participants p
 JOIN dim_customers c ON c.customer_id = p.customer_id
 LEFT JOIN active_redeemers ar ON ar.customer_id = p.customer_id
 GROUP BY 1;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 6.4: Monthly Accrual vs Redemption Dynamics & Cumulative Gap
 -- Question: How has the cumulative liability evolved monthly across 2024-2025?
@@ -104,8 +97,6 @@ SELECT
 FROM monthly_accrual ma
 FULL OUTER JOIN monthly_redemption mr ON ma.ym = mr.ym
 ORDER BY year_month;
-
-
 -- =====================================================================
 -- EXECUTIVE FINDINGS & M&A AUDIT VERDICT: BLOCK 6
 -- =====================================================================
