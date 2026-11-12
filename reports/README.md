@@ -46,10 +46,10 @@ The goal is to evaluate the bank's true financial health, uncover hidden client 
 ## 📊 Power BI Dashboard Preview
 
 ### 1. Overview & Customer Base
-![Overview Dashboard](main/dashboard/page1.png)
+![Overview Dashboard](dashboard/page1.png)
 
 ### 2. Credit Portfolio & Risk
-![Credit Risk Dashboard](main/dashboard/page2.png)
+![Credit Risk Dashboard](dashboard/page2.png)
 
 ---
 
