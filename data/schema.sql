@@ -1,3 +1,12 @@
+## ⚙️ Database Connection
+
+To connect to the PostgreSQL database hosted on Neon, use the following credentials:
+
+* **Host:** `ep-fragrant-salad-as3vw9mr-pooler.c-4.eu-central-1.aws.neon.tech`
+* **Database:** `bank_analytics`
+* **User:** `bank_student`
+* **Password:** `bankstudent2026`
+
 -- =====================================================================
 -- DATABASE SCHEMA: Bank Analytics DB (Star Schema)
 -- Target Platform: PostgreSQL 15+
