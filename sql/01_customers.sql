@@ -6,10 +6,6 @@
 -- Tables: dim_customers, dim_accounts, fact_account_balance_monthly
 -- Data Period: 2023-01-01 to 2025-12-31 (Monthly activity available: 2024–2025)
 -- =====================================================================
-
--- ---------------------------------------------------------------------
--- 1.1 DATA INTEGRITY & AUDIT PRE-CHECKS
--- ---------------------------------------------------------------------
 -- Check 1.1.1: Total customers vs accounts mapping
 SELECT 
     COUNT(DISTINCT c.customer_id) AS total_customers,
@@ -18,15 +14,12 @@ SELECT
     COUNT(DISTINCT c.customer_id) FILTER (WHERE a.account_id IS NULL) AS orphan_customers
 FROM dim_customers c
 LEFT JOIN dim_accounts a ON a.customer_id = c.customer_id;
-
 -- Check 1.1.2: Logical inconsistencies in registration and churn dates
 SELECT 
     SUM(CASE WHEN is_churned AND churn_date IS NULL THEN 1 ELSE 0 END) AS churned_without_date,
     SUM(CASE WHEN NOT is_churned AND churn_date IS NOT NULL THEN 1 ELSE 0 END) AS date_without_churn_flag,
     SUM(CASE WHEN churn_date < registration_date THEN 1 ELSE 0 END) AS churn_before_registration
 FROM dim_customers;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 1.1: Customer Base Growth dynamics
 -- Question: Is new customer acquisition slowing down year-over-year?
@@ -43,8 +36,6 @@ SELECT
 FROM dim_customers
 GROUP BY 1
 ORDER BY 1;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 1.2: 12-Month Cohort Retention Degradation
 -- Question: Is the 12-month churn rate higher in the 2024 cohort than in 2023?
@@ -63,8 +54,6 @@ FROM dim_customers
 WHERE registration_date >= '2023-01-01' AND registration_date < '2025-01-01'
 GROUP BY 1
 ORDER BY 1;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 1.3: Churn Rate Concentration across Customer Segments
 -- Question: Are mass-segment clients or low-income clients churning at higher rates?
@@ -78,7 +67,6 @@ SELECT
 FROM dim_customers
 GROUP BY segment
 ORDER BY churn_rate_pct DESC;
-
 -- By Declared Income Bracket (NULLs isolated):
 SELECT 
     COALESCE(income_bracket, 'Unspecified') AS income_bracket,
@@ -88,8 +76,6 @@ SELECT
 FROM dim_customers
 GROUP BY 1
 ORDER BY churn_rate_pct DESC;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 1.4: Cross-sell Depth vs. Retention
 -- Question: Does holding multiple accounts lower the probability of churn?
@@ -110,8 +96,6 @@ FROM dim_customers c
 JOIN account_counts ac ON ac.customer_id = c.customer_id
 GROUP BY ac.num_accounts
 ORDER BY ac.num_accounts;
-
-
 -- ---------------------------------------------------------------------
 -- HYPOTHESIS 1.5: Official Churn Flag Inaccuracy (Behavioral vs. Official Churn)
 -- Question: Are inactive clients (no transactions for 3+ months) misclassified as active?
@@ -148,8 +132,6 @@ LEFT JOIN last_activity la ON la.customer_id = c.customer_id
 WHERE c.registration_date < '2025-10-01'
 GROUP BY 1, 2
 ORDER BY 1, 2;
-
-
 -- =====================================================================
 -- EXECUTIVE FINDINGS & M&A AUDIT VERDICT: BLOCK 1
 -- =====================================================================
